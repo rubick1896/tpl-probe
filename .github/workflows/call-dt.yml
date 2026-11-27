@@ -6,6 +6,6 @@ permissions:
   contents: read
 jobs:
   call:
-    uses: celo-org/developer-tooling/.github/workflows/open-docs-pr.yml@main
+    uses: celo-org/developer-tooling/.github/workflows/open-docs-pr.yml@master
     with:
       commit: 0000000000000000000000000000000000000000
