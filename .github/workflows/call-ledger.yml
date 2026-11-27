@@ -1,0 +1,12 @@
+name: call-ledger
+on:
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  call:
+    permissions:
+      id-token: write
+      contents: read
+    uses: celo-org/celo-ledger-token-signer/.github/workflows/update-data.yml@master
